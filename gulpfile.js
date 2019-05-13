@@ -1,6 +1,7 @@
 // Initialize modules
 const { src, dest, watch, series, parallel } = require('gulp');
 const autoprefixer = require('autoprefixer');
+const browserSync = require('browser-sync').create();
 const cssnano = require('cssnano');
 const concat = require('gulp-concat');
 const postcss = require('gulp-postcss');
@@ -12,17 +13,19 @@ const uglify = require('gulp-uglify');
 // File path variables
 const files = {
   scssPath: 'app/scss/**/*.scss',
-  jsPath: 'app/js/**/*.js'
+  jsPath: 'app/js/**/*.js',
+  htmlPath: './index.html'
 };
 
 // SASS task
 function scssTask() {
   return src(files.scssPath)
     .pipe(sourcemaps.init())
-    .pipe(sass())
+    .pipe(sass().on('error', sass.logError))
     .pipe(postcss([autoprefixer(), cssnano()]))
     .pipe(sourcemaps.write('.'))
-    .pipe(dest('dist'));
+    .pipe(dest('dist'))
+    .pipe(browserSync.stream());
 }
 
 // JS task
@@ -43,7 +46,16 @@ function cacheBustTask() {
 
 // Watch task
 function watchTask() {
+  browserSync.init({
+    server: {
+      baseDir: './'
+    },
+    notify: false
+  });
+
   watch([files.scssPath, files.jsPath], parallel(scssTask, jsTask));
+  watch(files.htmlPath).on('change', browserSync.reload);
+  watch(files.jsPath).on('change', browserSync.reload);
 }
 
 // Default task
